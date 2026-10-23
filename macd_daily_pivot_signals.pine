@@ -1,10 +1,11 @@
 //@version=6
-indicator("MACD Divergence + Classic Daily Pivot Signals", shorttitle="MACD Pivot Signals", overlay=true, max_labels_count=500)
+indicator("MACD Divergence + Classic Daily Pivot Signals", shorttitle="MACD Pivot Signals", overlay=false, max_labels_count=500)
 
 fastLength = input.int(12, "Fast length", minval=1, group="MACD")
 slowLength = input.int(26, "Slow length", minval=1, group="MACD")
 signalLength = input.int(9, "Signal length", minval=1, group="MACD")
 source = input.source(close, "Source", group="MACD")
+showHistogram = input.bool(false, "Show MACD histogram", group="MACD")
 divergenceType = input.string("Hidden (reverse)", "Divergence type", options=["Hidden (reverse)", "Regular (reversal)", "Both"], group="Divergence")
 waveLookback = input.int(5, "Earlier same-side waves to compare", minval=1, maxval=50, group="Divergence")
 minWaveBars = input.int(3, "Minimum bars per wave", minval=1, maxval=100, group="Divergence")
@@ -15,6 +16,10 @@ if timeframe.in_seconds() > timeframe.in_seconds("1D")
     runtime.error("Use a daily or intraday chart for daily pivot signals.")
 
 [macdLine, signalLine, histogram] = ta.macd(source, fastLength, slowLength, signalLength)
+// Visibility controls drawings only; divergence always uses the histogram.
+histogramColor = histogram >= 0 ? (histogram > histogram[1] ? color.teal : color.new(color.teal, 60)) : (histogram < histogram[1] ? color.red : color.new(color.red, 60))
+plot(showHistogram ? histogram : na, title="MACD histogram", style=plot.style_columns, color=histogramColor, display=showHistogram ? display.all : display.none)
+plot(showHistogram ? 0.0 : na, title="MACD zero", color=color.gray, display=showHistogram ? display.all : display.none)
 
 // Previous completed exchange daily candle: no developing daily values.
 [previousHigh, previousLow, previousClose] = request.security(syminfo.tickerid, "1D", [high[1], low[1], close[1]], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_on)

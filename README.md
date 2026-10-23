@@ -1,6 +1,8 @@
 # TradingView MACD wave divergence and daily Classic pivots
 
-Paste `macd_daily_pivot_signals.pine` into TradingView's Pine Editor, save, and choose **Add to chart**. Use standard candles on intraday or daily charts. Only BUY/SELL labels draw on the chart. MACD and pivot levels remain internal; no local dependencies are needed.
+Paste `macd_daily_pivot_signals.pine` into TradingView's Pine Editor, save, and choose **Add to chart**. Use standard candles on intraday or daily charts. BUY/SELL labels draw on the price chart. Enable **Settings → Inputs → MACD → Show MACD histogram** to display the histogram and zero line in a separate pane; it is hidden by default. Hiding it does not change signals. Daily pivot levels remain internal; no local dependencies are needed.
+
+TradingView may retain an empty indicator pane when the histogram is hidden; collapse the pane if needed. After installing this update, remove the old indicator instance and add it again so TradingView applies the new pane placement.
 
 ## Broader histogram wave comparison
 
