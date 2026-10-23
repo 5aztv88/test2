@@ -1,25 +1,35 @@
-# TradingView MACD and daily pivot signals
+# TradingView MACD wave divergence and daily Classic pivots
 
-Paste `macd_daily_pivot_signals.pine` into TradingView's Pine Editor, save it, and choose **Add to chart**. Use standard candles on an intraday or daily chart. No local dependencies are required.
+Paste `macd_daily_pivot_signals.pine` into TradingView's Pine Editor, save, and choose **Add to chart**. Use standard candles on intraday or daily charts. Only BUY/SELL labels draw on the chart. MACD and pivot levels remain internal; no local dependencies are needed.
 
-Only BUY/SELL labels appear on the price chart. The MACD histogram and Classic daily S2/S3/R2/R3 levels are calculated internally without drawing lines or an extra pane. MACD defaults to 12/26/9; all lengths are adjustable.
+## Broader histogram wave comparison
 
-Classic formulas use P = (previous daily high + low + close) / 3 and range = high - low: S2 = P - range, S3 = P - 2 × range, R2 = P + range, R3 = P + 2 × range. The daily source is fixed even on intraday charts.
+MACD defaults to 12/26/9, with adjustable lengths and source. A negative wave is a sequence of negative histogram bars; a positive wave is a sequence of positive bars. Exactly zero bars are ignored. An opposite-sign candle closing confirms the preceding wave. The first observed wave is excluded because the loaded chart history may begin partway through it.
 
-## Signal rules
+For each negative wave, record its lowest histogram value and lowest price. For each positive wave, record its highest histogram value and highest price. These extremes can occur on different candles within the same wave. Compare with up to **5 previous qualifying waves of the same sign**, rather than just neighbouring price swings. A match against any one of those waves is sufficient.
 
-The script compares consecutive confirmed price swing lows for buys and swing highs for sells, sampling the MACD histogram at each price swing. The newer swing candle must touch S2/S3 for a buy or R2/R3 for a sell. Touch means its high-low range intersects a level within the configurable tick tolerance. Levels are calculated from the previous completed exchange daily candle; they need not match a separately configured session-specific pivot indicator.
+Defaults exclude waves shorter than **3 nonzero histogram bars** and pairs whose price extremes are more than **300 chart bars apart**. These limits and the number of earlier waves are adjustable. Short excluded waves still separate surrounding waves; they are not merged.
 
-The default **Hidden (reverse)** setting means a higher price low with a lower histogram low for BUY, or a lower price high with a higher histogram high for SELL. If you mean reversal divergence, choose **Regular (reversal)**: a lower price low with a higher histogram low for BUY, or a higher price high with a lower histogram high for SELL. **Both** enables either pattern.
+| Mode | BUY: compare negative waves | SELL: compare positive waves |
+| --- | --- | --- |
+| Hidden (reverse), default | Higher price low, lower histogram trough | Lower price high, higher histogram peak |
+| Regular (reversal) | Lower price low, higher histogram trough | Higher price high, lower histogram peak |
+| Both | Either bullish pattern | Either bearish pattern |
 
-By default, both compared histogram values must be negative for buys and positive for sells. This filter can be disabled. Swing strength, maximum swing separation, and touch tolerance are configurable.
+## Daily pivot requirement
 
-## Confirmation and alerts
+The newer negative wave's lowest-price candle must touch daily Classic S2 or S3 for BUY. The newer positive wave's highest-price candle must touch R2 or R3 for SELL. If several candles share the exact price extreme, a touch on any of those candles qualifies. A touch elsewhere in the wave does not qualify.
 
-Signals appear only at the close of the confirmation candle, by default five bars after the swing. They are not backdated. The level touch is evaluated on the swing candle using the daily levels valid on that candle. This delay is necessary to confirm a swing using bars to its right.
+Touch means the candle's high-low range intersects the level plus/minus the tick tolerance (default 5 ticks). Each candle uses the pivot levels valid on that candle, including when a wave spans multiple days.
 
-Create alerts using the indicator's BUY or SELL condition and select **Once Per Bar Close**. This indicator does not place trades or provide a strategy backtest.
+Daily levels use the previous completed exchange daily candle regardless of the chart's intraday timeframe. With P = (high + low + close) / 3 and range = high - low: S2 = P - range, S3 = P - 2 × range, R2 = P + range, R3 = P + 2 × range. Session-specific or synthetic candle settings in other indicators may give different values.
+
+## Signal timing and alerts
+
+Signals appear on the close of the first opposite-sign histogram candle, after the newer wave ends. They are not backdated to the price extreme. This is a variable confirmation delay, replacing the former fixed five-bar swing confirmation. An unfinished wave produces no signal. Each completed wave produces at most one signal.
+
+Create alerts using the BUY or SELL condition with **Once Per Bar Close**. Recreate existing TradingView alerts after updating the script because alerts retain a snapshot of the old code. This indicator does not place trades or provide a strategy backtest.
 
 ## Validation
 
-The script has not been compiled or run in TradingView from this environment: no Pine compiler or authenticated TradingView integration is available here. In Pine Editor, verify compilation, inspect signals around S2/S3 and R2/R3, and use Bar Replay to check confirmation timing before relying on alerts.
+Source changes and whitespace were reviewed locally. No Pine compiler or TradingView runtime is available in this environment, so compilation and chart behavior remain unverified. In TradingView, check compilation and use Bar Replay to inspect separate-wave divergence, pivot touches at the price extreme, and signals appearing only after an opposite-sign candle closes.
