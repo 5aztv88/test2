@@ -1,5 +1,5 @@
 //@version=6
-indicator("MACD Divergence + Traditional Daily Pivot Signals", shorttitle="MACD Pivot Signals", overlay=false, max_labels_count=500)
+indicator("MACD Divergence + Classic Daily Pivot Signals", shorttitle="MACD Pivot Signals", overlay=true, max_labels_count=500)
 
 fastLength = input.int(12, "Fast length", minval=1, group="MACD")
 slowLength = input.int(26, "Slow length", minval=1, group="MACD")
@@ -11,28 +11,20 @@ rightBars = input.int(5, "Swing bars right (confirmation delay)", minval=1, maxv
 maxSeparation = input.int(100, "Maximum bars between swings", minval=2, group="Divergence")
 requireSign = input.bool(true, "Require buy histogram below zero / sell above zero", group="Divergence")
 touchTicks = input.int(5, "Level touch tolerance (ticks)", minval=0, group="Daily pivots")
-showLevels = input.bool(true, "Show S2, S3, R2, R3 on price chart", group="Daily pivots")
 
 if timeframe.in_seconds() > timeframe.in_seconds("1D")
     runtime.error("Use a daily or intraday chart for daily pivot signals.")
 
 [macdLine, signalLine, histogram] = ta.macd(source, fastLength, slowLength, signalLength)
-histColor = histogram >= 0 ? (histogram > histogram[1] ? color.teal : color.new(color.teal, 60)) : (histogram < histogram[1] ? color.red : color.new(color.red, 60))
-plot(histogram, "MACD histogram", style=plot.style_columns, color=histColor)
-hline(0, "Zero", color=color.gray)
 
 // Previous completed exchange daily candle: no developing daily values.
 [previousHigh, previousLow, previousClose] = request.security(syminfo.tickerid, "1D", [high[1], low[1], close[1]], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_on)
 pivot = (previousHigh + previousLow + previousClose) / 3.0
 dailyRange = previousHigh - previousLow
 s2 = pivot - dailyRange
-s3 = previousLow - 2.0 * (previousHigh - pivot)
+s3 = pivot - 2.0 * dailyRange
 r2 = pivot + dailyRange
-r3 = previousHigh + 2.0 * (pivot - previousLow)
-plot(showLevels ? s2 : na, "Daily S2", color=color.new(color.green, 20), style=plot.style_stepline, force_overlay=true)
-plot(showLevels ? s3 : na, "Daily S3", color=color.green, style=plot.style_stepline, force_overlay=true)
-plot(showLevels ? r2 : na, "Daily R2", color=color.new(color.red, 20), style=plot.style_stepline, force_overlay=true)
-plot(showLevels ? r3 : na, "Daily R3", color=color.red, style=plot.style_stepline, force_overlay=true)
+r3 = pivot + 2.0 * dailyRange
 
 // A touch means the candle's range intersects the level plus/minus tolerance.
 tolerance = touchTicks * syminfo.mintick

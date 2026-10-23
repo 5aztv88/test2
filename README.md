@@ -2,7 +2,9 @@
 
 Paste `macd_daily_pivot_signals.pine` into TradingView's Pine Editor, save it, and choose **Add to chart**. Use standard candles on an intraday or daily chart. No local dependencies are required.
 
-The histogram appears in its own pane. Daily traditional S2/S3/R2/R3 levels and BUY/SELL labels appear on the price chart. MACD defaults to 12/26/9; all lengths are adjustable.
+Only BUY/SELL labels appear on the price chart. The MACD histogram and Classic daily S2/S3/R2/R3 levels are calculated internally without drawing lines or an extra pane. MACD defaults to 12/26/9; all lengths are adjustable.
+
+Classic formulas use P = (previous daily high + low + close) / 3 and range = high - low: S2 = P - range, S3 = P - 2 × range, R2 = P + range, R3 = P + 2 × range. The daily source is fixed even on intraday charts.
 
 ## Signal rules
 
@@ -10,7 +12,7 @@ The script compares consecutive confirmed price swing lows for buys and swing hi
 
 The default **Hidden (reverse)** setting means a higher price low with a lower histogram low for BUY, or a lower price high with a higher histogram high for SELL. If you mean reversal divergence, choose **Regular (reversal)**: a lower price low with a higher histogram low for BUY, or a higher price high with a lower histogram high for SELL. **Both** enables either pattern.
 
-By default, both compared histogram values must be negative for buys and positive for sells. This filter can be disabled. Swing strength, maximum swing separation, touch tolerance, and level visibility are configurable.
+By default, both compared histogram values must be negative for buys and positive for sells. This filter can be disabled. Swing strength, maximum swing separation, and touch tolerance are configurable.
 
 ## Confirmation and alerts
 
