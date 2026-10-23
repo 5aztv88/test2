@@ -1,0 +1,86 @@
+//@version=6
+indicator("MACD Divergence + Traditional Daily Pivot Signals", shorttitle="MACD Pivot Signals", overlay=false, max_labels_count=500)
+
+fastLength = input.int(12, "Fast length", minval=1, group="MACD")
+slowLength = input.int(26, "Slow length", minval=1, group="MACD")
+signalLength = input.int(9, "Signal length", minval=1, group="MACD")
+source = input.source(close, "Source", group="MACD")
+divergenceType = input.string("Hidden (reverse)", "Divergence type", options=["Hidden (reverse)", "Regular (reversal)", "Both"], group="Divergence")
+leftBars = input.int(5, "Swing bars left", minval=1, maxval=100, group="Divergence")
+rightBars = input.int(5, "Swing bars right (confirmation delay)", minval=1, maxval=100, group="Divergence")
+maxSeparation = input.int(100, "Maximum bars between swings", minval=2, group="Divergence")
+requireSign = input.bool(true, "Require buy histogram below zero / sell above zero", group="Divergence")
+touchTicks = input.int(5, "Level touch tolerance (ticks)", minval=0, group="Daily pivots")
+showLevels = input.bool(true, "Show S2, S3, R2, R3 on price chart", group="Daily pivots")
+
+if timeframe.in_seconds() > timeframe.in_seconds("1D")
+    runtime.error("Use a daily or intraday chart for daily pivot signals.")
+
+[macdLine, signalLine, histogram] = ta.macd(source, fastLength, slowLength, signalLength)
+histColor = histogram >= 0 ? (histogram > histogram[1] ? color.teal : color.new(color.teal, 60)) : (histogram < histogram[1] ? color.red : color.new(color.red, 60))
+plot(histogram, "MACD histogram", style=plot.style_columns, color=histColor)
+hline(0, "Zero", color=color.gray)
+
+// Previous completed exchange daily candle: no developing daily values.
+[previousHigh, previousLow, previousClose] = request.security(syminfo.tickerid, "1D", [high[1], low[1], close[1]], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_on)
+pivot = (previousHigh + previousLow + previousClose) / 3.0
+dailyRange = previousHigh - previousLow
+s2 = pivot - dailyRange
+s3 = previousLow - 2.0 * (previousHigh - pivot)
+r2 = pivot + dailyRange
+r3 = previousHigh + 2.0 * (pivot - previousLow)
+plot(showLevels ? s2 : na, "Daily S2", color=color.new(color.green, 20), style=plot.style_stepline, force_overlay=true)
+plot(showLevels ? s3 : na, "Daily S3", color=color.green, style=plot.style_stepline, force_overlay=true)
+plot(showLevels ? r2 : na, "Daily R2", color=color.new(color.red, 20), style=plot.style_stepline, force_overlay=true)
+plot(showLevels ? r3 : na, "Daily R3", color=color.red, style=plot.style_stepline, force_overlay=true)
+
+// A touch means the candle's range intersects the level plus/minus tolerance.
+tolerance = touchTicks * syminfo.mintick
+touches(float level) =>
+    not na(level) and low <= level + tolerance and high >= level - tolerance
+
+supportTouch = touches(s2) or touches(s3)
+resistanceTouch = touches(r2) or touches(r3)
+swingLow = ta.pivotlow(low, leftBars, rightBars)
+swingHigh = ta.pivothigh(high, leftBars, rightBars)
+useHidden = divergenceType != "Regular (reversal)"
+useRegular = divergenceType != "Hidden (reverse)"
+
+var float lastLow = na
+var float lastLowHistogram = na
+var int lastLowBar = na
+var float lastHigh = na
+var float lastHighHistogram = na
+var int lastHighBar = na
+bool buySignal = false
+bool sellSignal = false
+
+if barstate.isconfirmed and not na(swingLow)
+    currentHistogram = histogram[rightBars]
+    currentBar = bar_index - rightBars
+    validPair = not na(lastLowBar) and currentBar - lastLowBar <= maxSeparation
+    hiddenBull = validPair and swingLow > lastLow and currentHistogram < lastLowHistogram
+    regularBull = validPair and swingLow < lastLow and currentHistogram > lastLowHistogram
+    signOK = not requireSign or (currentHistogram < 0 and lastLowHistogram < 0)
+    buySignal := supportTouch[rightBars] and signOK and ((useHidden and hiddenBull) or (useRegular and regularBull))
+    lastLow := swingLow
+    lastLowHistogram := currentHistogram
+    lastLowBar := currentBar
+
+if barstate.isconfirmed and not na(swingHigh)
+    currentHistogram = histogram[rightBars]
+    currentBar = bar_index - rightBars
+    validPair = not na(lastHighBar) and currentBar - lastHighBar <= maxSeparation
+    hiddenBear = validPair and swingHigh < lastHigh and currentHistogram > lastHighHistogram
+    regularBear = validPair and swingHigh > lastHigh and currentHistogram < lastHighHistogram
+    signOK = not requireSign or (currentHistogram > 0 and lastHighHistogram > 0)
+    sellSignal := resistanceTouch[rightBars] and signOK and ((useHidden and hiddenBear) or (useRegular and regularBear))
+    lastHigh := swingHigh
+    lastHighHistogram := currentHistogram
+    lastHighBar := currentBar
+
+// Display on the confirmation candle, without backdating to the swing.
+plotshape(buySignal, title="BUY", text="BUY", style=shape.labelup, location=location.belowbar, color=color.green, textcolor=color.white, size=size.small, force_overlay=true)
+plotshape(sellSignal, title="SELL", text="SELL", style=shape.labeldown, location=location.abovebar, color=color.red, textcolor=color.white, size=size.small, force_overlay=true)
+alertcondition(buySignal, "BUY: support + MACD divergence", "BUY: S2/S3 touch and confirmed MACD histogram divergence on {{ticker}} {{interval}}.")
+alertcondition(sellSignal, "SELL: resistance + MACD divergence", "SELL: R2/R3 touch and confirmed MACD histogram divergence on {{ticker}} {{interval}}.")
